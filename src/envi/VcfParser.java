@@ -71,8 +71,8 @@ public class VcfParser {
 		    int end_pos = win_size - 1;
 		    int index = 0;
 		    int pos = 0;
-		    Window cur_win = new Window(start_pos, end_pos, index);
-		    Window anc_win = new Window(start_pos, end_pos, index);
+		    Window cur_win = new Window();
+		    Window anc_win = new Window();
 		    
 		    while(scan.hasNext()) {
 		    	

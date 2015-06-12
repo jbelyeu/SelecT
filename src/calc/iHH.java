@@ -3,28 +3,39 @@ package calc;
 import java.util.ArrayList;
 import java.util.List;
 
+import errors.StatsCalcException;
 import tools.ExtendedHaplotype;
 import tools.GeneticMap;
 import tools.Individual;
 import tools.SNP;
+import tools.SimDist;
 import tools.Window;
 
 public class iHH extends HaplotypeTests {
 	
+	//General population information
 	private Window win;
 	private Individual[] individuals;
 	private GeneticMap gm;
 	private ExtendedHaplotype anc_eh;
 	private ExtendedHaplotype der_eh;
-	
 	private List<Window> anc_types;
 	private List<Double> all_unstd_iHH;
 	private List<Window> all_win;
+	
+	//Simulations
+	private SimDist neut_sim;
+	private SimDist sel_sim;
+	
+	//Analysis options
+	private boolean deflt_prior;
+	private double prior_prob;
 	
 	//iHH statistic information
 	private List<SNP> unused_snps;
 	private List<SNP> all_iHH_snp;
 	private List<Double> all_std_iHH;
+	private List<Double> bayes_probs;
 	
 	/**
 	 * For setting up the environment to run the iHH statistic
@@ -37,17 +48,26 @@ public class iHH extends HaplotypeTests {
 	 * @param gm			Genetic Map for the tested region, usually the chr
 	 */
 	public iHH(Window win, 
-			Individual[] individuals, 
-			List<Window> anc_types,
-			List<Window> all_win, 
-			GeneticMap gm) {
+				Individual[] individuals, 
+				List<Window> anc_types,
+				List<Window> all_win, 
+				GeneticMap gm,
+				SimDist neut_sim,
+				SimDist sel_sim,
+				boolean deflt_prior,
+				double prior_prob) {
 		
 		this.win = win;
 		this.individuals = individuals;
 		this.gm = gm;
+		this.neut_sim = neut_sim;
+		this.sel_sim = sel_sim;
 		
 		this.anc_types = anc_types;
 		this.all_win = all_win;
+		
+		this.deflt_prior = deflt_prior;
+		this.prior_prob = prior_prob;
 		
 		anc_eh = new ExtendedHaplotype();
 		der_eh = new ExtendedHaplotype();
@@ -56,6 +76,7 @@ public class iHH extends HaplotypeTests {
 		all_iHH_snp = new ArrayList<SNP>();
 		all_unstd_iHH = new ArrayList<Double>();
 		all_std_iHH = new ArrayList<Double>();
+		bayes_probs = new ArrayList<Double>();
 	}
 
 	/**
@@ -72,9 +93,10 @@ public class iHH extends HaplotypeTests {
 	 * 
 	 * Note that many of these functions are extended from HaplotypeTests and 
 	 * can't be found in this class.
+	 * @throws StatsCalcException 
 	 */
 	@Override
-	public void runStat() {
+	public void runStat() throws StatsCalcException {
 		
 		//Starting iHH Analysis
 		int st_index = win.getStIndex();
@@ -90,8 +112,32 @@ public class iHH extends HaplotypeTests {
 		//calculating and saving all standardized iHH values
 		all_std_iHH = standardizeData(all_unstd_iHH);
 		
+		//calculates the bayesian posterior probability of each given score
+//		bayes_probs = calcScoreProbabilities(all_std_iHH, neut_sim, sel_sim, true);//old
+		bayes_probs = calcScoreProbabilities(all_std_iHH, neut_sim, sel_sim, deflt_prior, prior_prob);
+		
 //		printStats();
 //		logRunStats();
+	}
+	
+	@Override
+	public Double getScoreAtSNP(SNP s) {
+		for(int i = 0; i < all_iHH_snp.size(); i++) {
+	  		if(s.sameAs(all_iHH_snp.get(i)))
+	  			return all_std_iHH.get(i);
+	  	}
+	  
+	  	return Double.NaN;
+	}
+	
+	@Override
+	public Double getProbAtSNP(SNP s) {
+	  	for(int i = 0; i < all_iHH_snp.size(); i++) {
+	  		if(s.sameAs(all_iHH_snp.get(i)))
+	  			return bayes_probs.get(i);
+	  	}
+	  
+	  	return null;
 	}
 	
 	@Override
@@ -102,6 +148,11 @@ public class iHH extends HaplotypeTests {
 	@Override
 	public List<Double> getStats() {
 		return all_std_iHH;
+	}
+	
+	@Override
+	public List<Double> getProbs() {
+		return bayes_probs;
 	}
 	
 	@Override
@@ -151,7 +202,6 @@ public class iHH extends HaplotypeTests {
 		
 		SNP anc_snp = getAncestralSNP(core_snp, anc_types);
 		
-		//TODO: check if there are any reverse compliment data being thrown out here
 		if(checkValidSnpComparison(core_snp, anc_snp)) {
 				
 			//Initial Grouping (according to ancestral or derived type)

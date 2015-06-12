@@ -3,33 +3,47 @@ package calc;
 import java.util.ArrayList;
 import java.util.List;
 
+import errors.StatsCalcException;
 import tools.Individual;
 import tools.SNP;
+import tools.SimDist;
 import tools.Window;
 
 public class dDAF extends HaplotypeTests {
 	
+	//General population information
 	private Window tp_win;
 	private Individual[] tp_indv;
-	
 	private List<Window> xoin_wins;
 	private Individual[] xp_ino_indv;//previously intersected with op
 	private Individual[] op_inx_indv;//previously intersected with xp
-	
 	private List<Window> anc_types;
+	
+	//Simulations
+	private SimDist neut_sim;
+	private SimDist sel_sim;
+	
+	//Analysis options
+	private boolean deflt_prior;
+	private double prior_prob;
 	
 	//DAF statistic information
 	private List<SNP> unused_snps;
 	private List<SNP> all_delta_DAF_snps;
 	private List<Double> all_DAF;
 	private List<Double> all_delta_DAF;
+	private List<Double> bayes_probs;
 	
 	public dDAF(Window tp_win, 
 				Individual[] tp_indv,
 				List<Window> xoin_wins,
 				Individual[] xp_ino_indv,
 				Individual[] op_inx_indv,
-				List<Window> anc_types){
+				List<Window> anc_types,
+				SimDist neut_sim,
+				SimDist sel_sim,
+				boolean deflt_prior,
+				double prior_prob){
 		
 		this.tp_win = tp_win;
 		this.tp_indv = tp_indv;
@@ -37,17 +51,23 @@ public class dDAF extends HaplotypeTests {
 		this.xoin_wins = xoin_wins;
 		this.xp_ino_indv = xp_ino_indv;
 		this.op_inx_indv = op_inx_indv;
+		this.neut_sim = neut_sim;
+		this.sel_sim = sel_sim;
 		
 		this.anc_types = anc_types;
+		
+		this.deflt_prior = deflt_prior;
+		this.prior_prob = prior_prob;
 		
 		unused_snps = new ArrayList<SNP>();
 		all_delta_DAF_snps = new ArrayList<SNP>();
 		all_DAF = new ArrayList<Double>();
 		all_delta_DAF = new ArrayList<Double>();
+		bayes_probs = new ArrayList<Double>();
 	}
 	
 	@Override
-	public void runStat() {
+	public void runStat() throws StatsCalcException {
 		
 		//Starting dDAF Analysis
 		Individual[] all_xo_indv = combineIndvArrays(xp_ino_indv, op_inx_indv);
@@ -96,8 +116,32 @@ public class dDAF extends HaplotypeTests {
 			}
 		}
 		
+		//calculates the bayesian posterior probability of each given score
+//		bayes_probs = calcScoreProbabilities(all_delta_DAF, neut_sim, sel_sim, true);
+		bayes_probs = calcScoreProbabilities(all_delta_DAF, neut_sim, sel_sim, deflt_prior, prior_prob);
+		
 //		printStats();
 //		logRunStats();
+	}
+	
+	@Override
+	public Double getScoreAtSNP(SNP s) {
+		for(int i = 0; i < all_delta_DAF_snps.size(); i++) {
+	  		if(s.sameAs(all_delta_DAF_snps.get(i)))
+	  			return all_delta_DAF.get(i);
+	  	}
+	  
+	  	return Double.NaN;
+	}
+	
+	@Override
+	public Double getProbAtSNP(SNP s) {
+	  	for(int i = 0; i < all_delta_DAF_snps.size(); i++) {
+	  		if(s.sameAs(all_delta_DAF_snps.get(i)))
+	  			return bayes_probs.get(i);
+	  	}
+	  
+	  	return null;
 	}
 	
 	@Override
@@ -108,6 +152,11 @@ public class dDAF extends HaplotypeTests {
 	@Override
 	public List<Double> getStats() {
 		return all_delta_DAF;
+	}
+	
+	@Override
+	public List<Double> getProbs() {
+		return bayes_probs;
 	}
 	
 	@Override

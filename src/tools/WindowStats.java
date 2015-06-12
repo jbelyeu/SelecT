@@ -1,10 +1,15 @@
 package tools;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.TreeMap;
 
-public class WindowStats {
+import calc.HaplotypeTests;
+
+public class WindowStats implements Comparable<WindowStats>{
 	
 	private int st_pos;
 	private int end_pos;
@@ -27,6 +32,10 @@ public class WindowStats {
 	//private List<Double> tajd_stats;
 	//private List<Double> new_stats;
 	
+	private TreeMap<SNP, Double> win_scores_prod_unstd;
+	private TreeMap<SNP, Double> win_scores_mean_unstd;
+	private TreeMap<SNP, Double> win_scores_prod_std;
+	private TreeMap<SNP, Double> win_scores_mean_std;
 	
 	public WindowStats() {
 		
@@ -38,23 +47,28 @@ public class WindowStats {
 		this.st_pos = st_pos;
 		this.end_pos = end_pos;
 		
-		ihs_snps = null;
-		xpehh_snps = null;
-		ihh_snps = null;
-		ddaf_snps = null;
-		daf_snps = null;
-		fst_snps = null;
-		//tajd_snps = null;
-		//new_snps = null;
+		ihs_snps = new ArrayList<SNP>();
+		xpehh_snps = new ArrayList<SNP>();
+		ihh_snps = new ArrayList<SNP>();
+		ddaf_snps = new ArrayList<SNP>();
+		daf_snps = new ArrayList<SNP>();
+		fst_snps = new ArrayList<SNP>();
+		//tajd_snps = new ArrayList<SNP>();
+		//new_snps = new ArrayList<SNP>();
 		
-		ihs_stats = null;
-		xpehh_stats = null;
-		ihh_stats = null;
-		ddaf_stats = null;
-		daf_stats = null;
-		fst_stats = null;
-		//tajd_stats = null;
-		//new_stats = null;
+		ihs_stats = new ArrayList<Double>();
+		xpehh_stats = new ArrayList<Double>();
+		ihh_stats = new ArrayList<Double>();
+		ddaf_stats = new ArrayList<Double>();
+		daf_stats = new ArrayList<Double>();
+		fst_stats = new ArrayList<Double>();
+		//tajd_stats = new ArrayList<Double>();
+		//new_stats = new ArrayList<Double>();
+		
+		win_scores_prod_unstd = new TreeMap<SNP, Double>();
+		win_scores_mean_unstd = new TreeMap<SNP, Double>();
+		win_scores_prod_std = new TreeMap<SNP, Double>();
+		win_scores_mean_std = new TreeMap<SNP, Double>();
 	}
 	
 	public List<SNP> getAllSNPs() {
@@ -121,6 +135,11 @@ public class WindowStats {
 		this.ihs_stats = ihs_stats;
 		this.ihs_snps = ihs_snps;
 	}
+	
+	public void addIHS(List<Double> ihs_stats, List<SNP> ihs_snps) {
+		this.ihs_stats.addAll(ihs_stats);
+		this.ihs_snps.addAll(ihs_snps);
+	}
 
 	public List<SNP> getXPEHHsnps() {
 		return xpehh_snps;
@@ -134,6 +153,11 @@ public class WindowStats {
 		this.xpehh_stats = xpehh_stats;
 		this.xpehh_snps = xpehh_snps;
 	}
+	
+	public void addXPEHH(List<Double> xpehh_stats, List<SNP> xpehh_snps) {
+		this.xpehh_stats.addAll(xpehh_stats);
+		this.xpehh_snps.addAll(xpehh_snps);
+	}
 
 	public List<SNP> getIHHsnps() {
 		return ihh_snps;
@@ -146,6 +170,11 @@ public class WindowStats {
 	public void setIHH(List<Double> ihh_stats, List<SNP> ihh_snps) {
 		this.ihh_stats = ihh_stats;
 		this.ihh_snps = ihh_snps;
+	}
+	
+	public void addIHH(List<Double> ihh_stats, List<SNP> ihh_snps) {
+		this.ihh_stats.addAll(ihh_stats);
+		this.ihh_snps.addAll(ihh_snps);
 	}
 
 	public List<SNP> getDDAFsnps() {
@@ -161,6 +190,11 @@ public class WindowStats {
 		this.ddaf_snps = daf_snps;
 	}
 	
+	public void addDDAF(List<Double> ddaf_stats, List<SNP> ddaf_snps) {
+		this.ddaf_stats.addAll(ddaf_stats);
+		this.ddaf_snps.addAll(ddaf_snps);
+	}
+	
 	public List<SNP> getDAFsnps() {
 		return daf_snps;
 	}
@@ -172,6 +206,11 @@ public class WindowStats {
 	public void setDAF(List<Double> daf_stats, List<SNP> daf_snps) {
 		this.daf_stats = daf_stats;
 		this.daf_snps = daf_snps;
+	}
+	
+	public void addDAF(List<Double> daf_stats, List<SNP> daf_snps) {
+		this.daf_stats.addAll(daf_stats);
+		this.daf_snps.addAll(daf_snps);
 	}
 	
 //	public List<SNP> getTAJDsnps() {
@@ -186,6 +225,11 @@ public class WindowStats {
 //		this.tajd_stats = tajd_stats;
 //		this.tajd_snps = tajd_snps;
 //	}
+//	
+//	public void addTAFD(List<Double> tajd_stats, List<SNP> tajd_snps) {
+//		this.tajd_stats.addAll(tajd_stats);
+//		this.tajd_snps.addAll(tajd_snps);
+//	}
 	
 //	public List<SNP> getNEWsnps() {
 //		return new_snps;
@@ -199,6 +243,11 @@ public class WindowStats {
 //		this.new_stats = new_stats;
 //		this.new_snps = new_snps;
 //	}
+//	
+//	public void addNEW(List<Double> new_stats, List<SNP> new_snps) {
+//		this.new_stats.addAll(new_stats);
+//		this.new_snps.addAll(new_snps);
+//	}
 
 	public List<SNP> getFSTsnps() {
 		return fst_snps;
@@ -208,9 +257,14 @@ public class WindowStats {
 		return fst_stats;
 	}
 
-	public void setFst(List<Double> fst_stats, List<SNP> fst_snps) {
+	public void setFST(List<Double> fst_stats, List<SNP> fst_snps) {
 		this.fst_stats = fst_stats;
 		this.fst_snps = fst_snps;
+	}
+	
+	public void addFST(List<Double> fst_stats, List<SNP> fst_snps) {
+		this.fst_stats.addAll(fst_stats);
+		this.fst_snps.addAll(fst_snps);
 	}
 	
 	public Double getScore(List<SNP> snps, List<Double> stats, SNP snp) {
@@ -310,6 +364,125 @@ public class WindowStats {
 			return false;
 	}
 	
+	public void addUnstdPopScore(SNP s, Double score) {
+		
+		if(!score.equals(Double.NaN))
+			win_scores_prod_unstd.put(s, score);
+	}
+	
+	public void addUnstdMopScore(SNP s, Double score) {
+		
+		if(!score.equals(Double.NaN))
+			win_scores_mean_unstd.put(s, score);
+	}
+	
+	public void addUnstdPoP(TreeMap<SNP, Double> unstd_pop) {
+		win_scores_prod_unstd.putAll(unstd_pop);
+	}
+	
+	public void addUnstdMoP(TreeMap<SNP, Double> unstd_mop) {
+		win_scores_mean_unstd.putAll(unstd_mop);
+	}
+	
+	public void addStdPopScore(SNP s, Double score) {
+		
+		if(!score.equals(Double.NaN))
+			win_scores_prod_std.put(s, score);
+	}
+	
+	public void addStdMopScore(SNP s, Double score) {
+		
+		if(!score.equals(Double.NaN))
+			win_scores_mean_std.put(s, score);
+	}
+	
+	public void addStdPoP(TreeMap<SNP, Double> std_pop) {
+		win_scores_prod_std.putAll(std_pop);
+	}
+	
+	public void addStdMoP(TreeMap<SNP, Double> std_mop) {
+		win_scores_mean_std.putAll(std_mop);
+	}
+	
+	public TreeMap<SNP, Double> getUnstdPoP() {
+		return win_scores_prod_unstd;
+	}
+	
+	public TreeMap<SNP, Double> getUnstdMoP() {
+		return win_scores_mean_unstd;
+	}
+	
+	public Double getUnstdPopScore(SNP s) {
+		
+		Double score = win_scores_prod_unstd.get(s);
+		if(score == null)
+			return Double.NaN;
+		else
+			return score;
+	}
+	
+	public TreeMap<SNP, Double> getStdPoP() {
+		return win_scores_prod_std;
+	}
+	
+	public TreeMap<SNP, Double> getStdMoP() {
+		return win_scores_mean_std;
+	}
+	
+	public Double getUnstdMopScore(SNP s) {
+		
+		Double score = win_scores_mean_unstd.get(s);
+		if(score == null)
+			return Double.NaN;
+		else
+			return score;
+	}
+	
+	public Double getStdPopScore(SNP s) {
+		
+		Double score = win_scores_prod_std.get(s);
+		if(score == null)
+			return Double.NaN;
+		else
+			return score;
+	}
+	
+	public Double getStdMopScore(SNP s) {
+		
+		Double score = win_scores_mean_std.get(s);
+		if(score == null)
+			return Double.NaN;
+		else
+			return score;
+	}
+	
+	public void normalizeUnstdCompositeScores() {
+		
+		win_scores_prod_std = normalizeData(win_scores_prod_unstd);
+		win_scores_mean_std = normalizeData(win_scores_mean_unstd);
+	}
+	
+	private TreeMap<SNP, Double> normalizeData(TreeMap<SNP, Double> unstd_cms) {
+		
+		List<Double> all_values = new LinkedList<Double>();
+		TreeMap<SNP, Double> std_cms = new TreeMap<SNP, Double>();
+		
+		Iterator<SNP> itr = unstd_cms.navigableKeySet().iterator();
+		while(itr.hasNext()) 
+			all_values.add(unstd_cms.get(itr.next()));
+		
+		all_values = HaplotypeTests.normalizeData(all_values);
+		
+		itr = unstd_cms.navigableKeySet().iterator();
+		int indx = 0;
+		while(itr.hasNext()) {
+			std_cms.put(itr.next(), all_values.get(indx));
+			indx++;
+		}
+		
+		return std_cms;
+	}
+	
 	private List<SNP> buildAllSNPs(List<SNP> all_snps, List<SNP> snps) {
 		
 		for(int i = 0; i < snps.size(); i++) {
@@ -375,27 +548,68 @@ public class WindowStats {
 			
 			SNP cur_snp = all_snps.get(i);
 
-			Double iHS_score = getScore(ihs_snps, ihs_stats, cur_snp);
-			Double XPEHH_score = getScore(xpehh_snps, xpehh_stats, cur_snp);
-			Double iHH_score = getScore(ihh_snps, ihh_stats, cur_snp);
-			Double DDAF_score = getScore(ddaf_snps, ddaf_stats, cur_snp);
-			Double DAF_score = getScore(daf_snps, daf_stats, cur_snp);
-			Double Fst_score = getScore(fst_snps, fst_stats, cur_snp);
-			//Double TAJD_score = getScore(tajd_snps, tajd_stats, cur_snp);
-			//Double NEW_score = getScore(new_snps, new_stats, cur_snp);
-			
-			sb.append(cur_snp.getSnpID() + "\t");
-			sb.append(cur_snp.getPosition() + "\t");
-			sb.append(iHS_score + "\t");
-			sb.append(XPEHH_score + "\t");
-			sb.append(iHH_score + "\t");
-			sb.append(DDAF_score + "\t");
-			sb.append(DAF_score + "\t");
-			sb.append(Fst_score + "\n");
-			//sb.append(TAJD_score + "\t");
-			//sb.append(NEW_score + "\t");//check "\n"
+			sb.append(printSNP(cur_snp));
 		}
 		
 		return sb.toString();
 	}
+	
+	public String printSNP(SNP s) {
+		
+		StringBuilder sb = new StringBuilder();
+		
+		Double iHS_score = getScore(ihs_snps, ihs_stats, s);
+		Double XPEHH_score = getScore(xpehh_snps, xpehh_stats, s);
+		Double iHH_score = getScore(ihh_snps, ihh_stats, s);
+		Double DDAF_score = getScore(ddaf_snps, ddaf_stats, s);
+		Double DAF_score = getScore(daf_snps, daf_stats, s);
+		Double Fst_score = getScore(fst_snps, fst_stats, s);
+		//Double TAJD_score = getScore(tajd_snps, tajd_stats, s);
+		//Double NEW_score = getScore(new_snps, new_stats, cur_snp);
+		
+		Double pop_score_std = win_scores_prod_std.get(s);
+		Double mop_score_std = win_scores_mean_std.get(s);
+		Double pop_score = win_scores_prod_unstd.get(s);
+		Double mop_score = win_scores_mean_unstd.get(s);
+		
+		if(pop_score_std == null)
+			pop_score_std = Double.NaN;
+		if(mop_score_std == null)
+			mop_score_std = Double.NaN;
+		if(pop_score == null)
+			pop_score = Double.NaN;
+		if(mop_score == null)
+			mop_score = Double.NaN;
+		
+		sb.append(s.getSnpID() + "\t");
+		sb.append(s.getPosition() + "\t");
+		sb.append(iHS_score + "\t");
+		sb.append(XPEHH_score + "\t");
+		sb.append(iHH_score + "\t");
+		sb.append(DDAF_score + "\t");
+		sb.append(DAF_score + "\t");
+		sb.append(Fst_score + "\t");
+		//sb.append(TAJD_score + "\t");
+		//sb.append(NEW_score + "\t");
+		
+		sb.append(pop_score + "\t");
+		sb.append(mop_score + "\t");
+		sb.append(pop_score_std + "\t");
+		sb.append(mop_score_std + "\n");
+		
+		return sb.toString();
+	}
+
+	@Override
+	public int compareTo(WindowStats ws) {
+		
+		if(this.getStPos() < ws.getStPos())
+			return -1;
+		if(this.getStPos() > ws.getStPos())
+			return 1;
+		
+		return 0;
+	}
+	
+	
 }

@@ -3,28 +3,40 @@ package calc;
 import java.util.ArrayList;
 import java.util.List;
 
+import errors.StatsCalcException;
 import tools.ExtendedHaplotype;
 import tools.GeneticMap;
 import tools.Individual;
 import tools.SNP;
+import tools.SimDist;
 import tools.Window;
 
 public class iHS extends HaplotypeTests {
 	
+	//General population information
 	private Window win;
 	private Individual[] individuals;
-	private GeneticMap gm;
 	private ExtendedHaplotype anc_eh;
 	private ExtendedHaplotype der_eh;
-	
-	private List<Window> anc_types;
-	private List<Double> all_unstd_iHS;
 	private List<Window> all_win;
+	private List<Window> anc_types;
+	private GeneticMap gm;
+	
+	//Simulations
+	private SimDist neut_sim;
+	private SimDist sel_sim;
+	
+	//Analysis options
+	private boolean ihs_abs;
+	private boolean deflt_prior;
+	private double prior_prob;
 	
 	//iHS statistic information
 	private List<SNP> unused_snps;
 	private List<SNP> all_iHS_snp;
+	private List<Double> all_unstd_iHS;
 	private List<Double> all_std_iHS;
+	private List<Double> bayes_post;//bayesian posterior probability
 	
 	/**
 	 * For setting up the environment to run the iHS statistic
@@ -40,14 +52,25 @@ public class iHS extends HaplotypeTests {
 				Individual[] individuals, 
 				List<Window> anc_types,
 				List<Window> all_win, 
-				GeneticMap gm){
+				GeneticMap gm,
+				SimDist neut_sim,
+				SimDist sel_sim,
+				boolean ihs_abs,
+				boolean deflt_prior,
+				double prior_prob){
 		
 		this.win = win;
 		this.individuals = individuals;
 		this.gm = gm;
+		this.neut_sim = neut_sim;
+		this.sel_sim = sel_sim;
 		
 		this.anc_types = anc_types;
 		this.all_win = all_win;
+		
+		this.ihs_abs = ihs_abs;
+		this.deflt_prior = deflt_prior;
+		this.prior_prob = prior_prob;
 		
 		anc_eh = new ExtendedHaplotype();
 		der_eh = new ExtendedHaplotype();
@@ -56,6 +79,7 @@ public class iHS extends HaplotypeTests {
 		all_iHS_snp = new ArrayList<SNP>();
 		all_unstd_iHS = new ArrayList<Double>();
 		all_std_iHS = new ArrayList<Double>();
+		bayes_post = new ArrayList<Double>();
 	}
 	
 	/**
@@ -72,9 +96,10 @@ public class iHS extends HaplotypeTests {
 	 * 
 	 * Note that many of these functions are extended from HaplotypeTests and 
 	 * can't be found in this class.
+	 * @throws StatsCalcException 
 	 */
 	@Override
-	public void runStat() {
+	public void runStat() throws StatsCalcException {
 		
 		//Starting iHS Analysis
 		int st_index = win.getStIndex();
@@ -90,9 +115,33 @@ public class iHS extends HaplotypeTests {
 		
 		//calculating and saving all standardized iHS values	
 		all_std_iHS = standardizeData(all_unstd_iHS);
-			
+		
+		//calculates the bayesian posterior probability of each given score
+//		bayes_probs = calcScoreProbabilities(all_std_iHS, neut_sim, sel_sim, true);
+		calcScoreProbabilities();
+		
 //		printStats();
 //		logRunStats();	
+	}
+	
+	@Override
+	public Double getScoreAtSNP(SNP s) {
+		for(int i = 0; i < all_iHS_snp.size(); i++) {
+	  		if(s.sameAs(all_iHS_snp.get(i)))
+	  			return all_std_iHS.get(i);
+	  	}
+	  
+	  	return Double.NaN;
+	}
+	
+	@Override
+	public Double getProbAtSNP(SNP s) {
+	  	for(int i = 0; i < all_iHS_snp.size(); i++) {
+	  		if(s.sameAs(all_iHS_snp.get(i)))
+	  			return bayes_post.get(i);
+	  	}
+	  
+	  	return null;
 	}
 	
 	@Override
@@ -105,6 +154,11 @@ public class iHS extends HaplotypeTests {
 		return all_std_iHS;
 	}
 	
+	@Override
+	public List<Double> getProbs() {
+		return bayes_post;
+	}
+	 
 	@Override
 	public void printStats() {
 		
@@ -144,6 +198,23 @@ public class iHS extends HaplotypeTests {
 		}
 		System.out.println("iHS =\t" + ihs_sb.toString());
 		System.out.println("Pos =\t" + pos_sb.toString());
+	}
+	
+	private void calcScoreProbabilities() throws StatsCalcException {
+		
+		if(ihs_abs) {
+			List<Double> all_std_iHS_abs = new ArrayList<Double>();
+			for(int i = 0; i < all_std_iHS.size(); i++) {
+				if(all_std_iHS.get(i) > 0)
+					all_std_iHS_abs.add((-1)*all_std_iHS.get(i));
+				else
+					all_std_iHS_abs.add(all_std_iHS.get(i));
+			}
+			bayes_post = calcScoreProbabilities(all_std_iHS_abs, neut_sim, sel_sim, deflt_prior, prior_prob);
+		}
+		else
+			bayes_post = calcScoreProbabilities(all_std_iHS, neut_sim, sel_sim, deflt_prior, prior_prob);
+		
 	}
 	
 	private Double getUnstandardizedIHS(SNP core_snp, int snp_index) {

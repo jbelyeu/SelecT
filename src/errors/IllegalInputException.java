@@ -11,7 +11,6 @@ public class IllegalInputException extends Exception {
 		log.addLine("\n");
 		log.addLine(message);
 		log.addLine("\t*Make sure all arguments are correct" );
-		log.addLine("\t*Rerun with -h option as first argument in argument list for help");
 		log.addLine("\t*Go to api for parameter descriptions");
 	}
 

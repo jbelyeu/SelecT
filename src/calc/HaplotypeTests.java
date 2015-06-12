@@ -3,10 +3,12 @@ package calc;
 import java.util.ArrayList;
 import java.util.List;
 
+import errors.StatsCalcException;
 import tools.ExtendedHaplotype;
 import tools.GeneticMap;
 import tools.Individual;
 import tools.SNP;
+import tools.SimDist;
 import tools.Window;
 
 public abstract class HaplotypeTests {
@@ -56,12 +58,119 @@ public abstract class HaplotypeTests {
 		return all_data;
 	}
 	
-	public abstract void runStat();
+	public abstract void runStat() throws StatsCalcException;
 //	abstract List<SNP> getUnusedSNPs();
+	public abstract Double getScoreAtSNP(SNP s);
+	public abstract Double getProbAtSNP(SNP s);
 	public abstract List<SNP> getSNPs();
 	public abstract List<Double> getStats();
+	public abstract List<Double> getProbs();
 	public abstract void printStats();
 //	public abstract void logRunStats();
+	
+//	protected List<Double> calcScoreProbabilities(List<Double> std_scores, 
+//													SimDist neut_sim, 
+//													SimDist sel_sim,
+//													boolean two_sided) throws StatsCalcException {
+//		
+//		List<Double> neut_probs = new ArrayList<Double>();
+//		List<Double> sel_probs = new ArrayList<Double>();
+//		List<Double> bayes_probs = new ArrayList<Double>();
+//		
+//		double prior_prob = 1 / (double) std_scores.size();
+//		
+//		for(int i = 0; i < std_scores.size(); i++) {
+//			
+//			Double score = std_scores.get(i);
+//			
+//			Double neut_prob = 0.0;
+//			if(two_sided) {
+//				neut_prob = neut_sim.get2SidedProb(score);
+//				neut_probs.add(neut_sim.get2SidedProb(score));
+//			}
+//			else {
+//				neut_prob = neut_sim.get1SidedProb(score, false);
+//				neut_probs.add(neut_sim.get1SidedProb(score, false));
+//			}
+//			
+//			Double sel_prob = 0.0;
+//			if(two_sided) {
+//				sel_prob = sel_sim.get2SidedProb(score);
+//				sel_probs.add(sel_sim.get2SidedProb(score));
+//			}
+//			else {
+//				sel_prob = sel_sim.get1SidedProb(score, true);
+//				sel_probs.add(sel_sim.get1SidedProb(score, true));
+//			}
+//			
+//			double cms_nom = sel_prob * prior_prob;
+//			double cms_denom = ((sel_prob*prior_prob) + (neut_prob*(1-prior_prob)));
+//			Double score_prob = cms_nom / cms_denom;
+//			bayes_probs.add(score_prob);
+//			
+//			System.out.println(score + "\t" + neut_prob + "\t" + sel_prob + "\t" + score_prob);
+//		}
+//		
+//		return bayes_probs;
+//	}
+	
+	protected List<Double> calcScoreProbabilities(List<Double> std_scores, 
+													SimDist neut_sim, 
+													SimDist sel_sim,
+													boolean deflt_prior,
+													double prior) {
+		
+		
+		List<Double> bayes_post = new ArrayList<Double>();
+		double prior_prob = prior;
+		
+		if(deflt_prior)
+			prior_prob = 1 / (double) std_scores.size();
+//			prior_prob = 1 / (double) 10000;//TODO: finalize this
+		
+		
+//		System.out.println(prior_prob);
+		
+		for(int i = 0; i < std_scores.size(); i++) {
+			
+			Double score = std_scores.get(i);
+			
+			int score_indx = neut_sim.getScoreIndex(score);
+//			Double norm_post = 0.0;//log normalized posterior probability
+			Double post_prob = 0.0;
+			
+//			System.out.println(score + "\t");
+			
+			Double neut_prob = neut_sim.getProbAtIndex(score_indx);//j
+			Double sel_prob = sel_sim.getProbAtIndex(score_indx);//j
+			
+//			System.out.println("\t" + neut_prob + "\t" + sel_prob);
+			
+			if(!neut_prob.equals(Double.NaN) && !sel_prob.equals(Double.NaN)) {
+				
+				double cms_num = sel_prob * prior_prob;
+				double cms_denom = ((sel_prob*prior_prob) + (neut_prob*(1-prior_prob)));
+				post_prob = cms_num / cms_denom;
+				
+//				double norm_post = Math.log(post_prob);
+//				System.out.println("\t\tscore=" + score + "\t" + cms_num + "\t" + cms_denom + "\t" + post_prob + "\t" + norm_post);
+			}
+			
+//			System.out.println("***" + norm_post + "***\n");
+			
+//			if(norm_post != 0.0)
+//				bayes_post.add(norm_post);
+			if(post_prob != 0.0)
+				bayes_post.add(post_prob);
+			else
+				bayes_post.add(Double.NaN);
+		}
+		
+//		System.out.println("STD SIZE=" + std_scores.size());
+//		System.out.println("RTN SIZE=" + bayes_post.size());
+		
+		return bayes_post;
+	}
 	
 	protected void setHaplotypeGroups(ExtendedHaplotype anc_eh, 
 				ExtendedHaplotype der_eh, 

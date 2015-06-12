@@ -3,8 +3,10 @@ package calc;
 import java.util.ArrayList;
 import java.util.List;
 
+import errors.StatsCalcException;
 import tools.Individual;
 import tools.SNP;
+import tools.SimDist;
 import tools.Window;
 
 public class Fst extends HaplotypeTests {
@@ -20,14 +22,27 @@ public class Fst extends HaplotypeTests {
 	private Individual[] xp_indv;
 	private Individual[] op_indv;
 	
+	//Simulations
+	private SimDist neut_sim;
+	private SimDist sel_sim;
+	
+	//Analysis options
+	private boolean deflt_prior;
+	private double prior_prob;
+	
 	//Fst statistic information
 	private List<SNP> all_Fst_snps;
 	private List<Double> all_Fst;
+	private List<Double> bayes_probs;
 	
 	public Fst(Window txin_win, 
 				Individual[] tp_inx_indv,
 				Individual[] xp_int_indv,
-				Individual[] op_inx_indv) {
+				Individual[] op_inx_indv,
+				SimDist neut_sim,
+				SimDist sel_sim,
+				boolean deflt_prior,
+				double prior_prob) {
 		
 		this.win = txin_win;
 		
@@ -35,12 +50,19 @@ public class Fst extends HaplotypeTests {
 		this.xp_indv = xp_int_indv;
 		this.op_indv = op_inx_indv;
 		
+		this.neut_sim = neut_sim;
+		this.sel_sim = sel_sim;
+		
+		this.deflt_prior = deflt_prior;
+		this.prior_prob = prior_prob;
+		
 		all_Fst_snps = new ArrayList<SNP>();
 		all_Fst = new ArrayList<Double>();
+		bayes_probs = new ArrayList<Double>();
 	}
 	
 	@Override
-	public void runStat() {
+	public void runStat() throws StatsCalcException {
 		
 		//Starting Fst Analysis
 		List<SNP> win_snps = win.getSNPs();
@@ -107,8 +129,32 @@ public class Fst extends HaplotypeTests {
 			all_Fst.add(fst);
 		}
 		
+		//calculates the bayesian posterior probability of each given score
+//		bayes_probs = calcScoreProbabilities(all_Fst, neut_sim, sel_sim, false);
+		bayes_probs = calcScoreProbabilities(all_Fst, neut_sim, sel_sim, deflt_prior, prior_prob);
+		
 //		printStats();
 //		logRunStats();
+	}
+	
+	@Override
+	public Double getScoreAtSNP(SNP s) {
+		for(int i = 0; i < all_Fst_snps.size(); i++) {
+	  		if(s.sameAs(all_Fst_snps.get(i)))
+	  			return all_Fst.get(i);
+	  	}
+	  
+	  	return Double.NaN;
+	}
+	
+	@Override
+	public Double getProbAtSNP(SNP s) {
+	  	for(int i = 0; i < all_Fst_snps.size(); i++) {
+	  		if(s.sameAs(all_Fst_snps.get(i)))
+	  			return bayes_probs.get(i);
+	  	}
+	  
+	  	return null;
 	}
 	
 	@Override
@@ -119,6 +165,11 @@ public class Fst extends HaplotypeTests {
 	@Override
 	public List<Double> getStats() {
 		return all_Fst;
+	}
+	
+	@Override
+	public List<Double> getProbs() {
+		return bayes_probs;
 	}
 	
 	@Override

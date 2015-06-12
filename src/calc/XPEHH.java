@@ -3,28 +3,39 @@ package calc;
 import java.util.ArrayList;
 import java.util.List;
 
+import errors.StatsCalcException;
 import tools.ExtendedHaplotype;
 import tools.GeneticMap;
 import tools.Individual;
 import tools.SNP;
+import tools.SimDist;
 import tools.Window;
 
 public class XPEHH extends HaplotypeTests {
 	
 	private static double SIGNIFICANT_EHH_VALUE = 0.045;
 	
+	//General population information
 	private Window win;
 	private Individual[] tp_individuals;//target population (tp) intersected with the cross population
 	private Individual[] xp_individuals;//cross population (xp) intersected with the target population
 	private GeneticMap gm;
-	
 	private List<Window> all_win;
-	private List<Double> all_unstd_XPEHH;
+	
+	//Simulations
+	private SimDist neut_sim;
+	private SimDist sel_sim;
+	
+	//Analysis options
+	private boolean deflt_prior;
+	private double prior_prob;
 	
 	//XPEHH statistic information
 	private List<SNP> unused_snps;
+	private List<Double> all_unstd_XPEHH;
 	private List<SNP> all_XPEHH_snps;
 	private List<Double> all_XPEHH;
+	private List<Double> bayes_probs;
 	
 	/**
 	 * For setting up the environment to run the XPEHH statistic
@@ -40,20 +51,29 @@ public class XPEHH extends HaplotypeTests {
 					List<Window> all_win,
 					Individual[] tp_individuals,
 					Individual[] xp_individuals,
-					GeneticMap gm) {
+					GeneticMap gm,
+					SimDist neut_sim,
+					SimDist sel_sim,
+					boolean deflt_prior,
+					double prior_prob) {
 		
 		this.win = win;
 		this.tp_individuals = tp_individuals;
 		this.xp_individuals = xp_individuals;
 		this.gm = gm;
+		this.neut_sim = neut_sim;
+		this.sel_sim = sel_sim;
 		
 		this.all_win = all_win;
+		
+		this.deflt_prior = deflt_prior;
+		this.prior_prob = prior_prob;
 		
 		unused_snps = new ArrayList<SNP>();
 		all_XPEHH_snps = new ArrayList<SNP>();
 		all_unstd_XPEHH = new ArrayList<Double>();
 		all_XPEHH = new ArrayList<Double>();
-		
+		bayes_probs = new ArrayList<Double>();
 	}
 
 	/**
@@ -71,9 +91,10 @@ public class XPEHH extends HaplotypeTests {
 	 * 
 	 * Note that many of these functions are extended from HaplotypeTests and 
 	 * can't be found in this class.
+	 * @throws StatsCalcException 
 	 */
 	@Override
-	public void runStat() {
+	public void runStat() throws StatsCalcException {
 		
 		//Starting XPEHH Analysis
 		Individual[] all_indv = combineIndvArrays(tp_individuals, xp_individuals);
@@ -119,9 +140,33 @@ public class XPEHH extends HaplotypeTests {
 		//calculating and saving all standardized XPEHH values
 		all_XPEHH = standardizeData(all_unstd_XPEHH);
 		
+		//calculates the bayesian posterior probability of each given score
+//		bayes_probs = calcScoreProbabilities(all_XPEHH, neut_sim, sel_sim, false);
+		bayes_probs = calcScoreProbabilities(all_XPEHH, neut_sim, sel_sim, deflt_prior, prior_prob);
+		
 //		printStats();
 //		logRunStats();
 	} 
+	
+	@Override
+	public Double getScoreAtSNP(SNP s) {
+		for(int i = 0; i < all_XPEHH_snps.size(); i++) {
+	  		if(s.sameAs(all_XPEHH_snps.get(i)))
+	  			return all_XPEHH.get(i);
+	  	}
+	  
+	  	return Double.NaN;
+	}
+	
+	@Override
+	public Double getProbAtSNP(SNP s) {
+	  	for(int i = 0; i < all_XPEHH_snps.size(); i++) {
+	  		if(s.sameAs(all_XPEHH_snps.get(i)))
+	  			return bayes_probs.get(i);
+	  	}
+	  
+	  	return null;
+	}
 	
 	@Override
 	public List<SNP> getSNPs() {
@@ -131,6 +176,11 @@ public class XPEHH extends HaplotypeTests {
 	@Override
 	public List<Double> getStats() {
 		return all_XPEHH;
+	}
+	
+	@Override
+	public List<Double> getProbs() {
+		return bayes_probs;
 	}
 	
 	@Override
